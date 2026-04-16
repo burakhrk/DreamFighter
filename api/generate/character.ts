@@ -1,11 +1,11 @@
-import {
-  characterRequestSchema,
-  generateCharacterFromPrompt,
-} from '../../web/api/_lib/dreamService.js'
-import { errorResponse } from '../../web/api/_lib/http.js'
-
 export async function POST(request: Request) {
   try {
+    const [{ characterRequestSchema, generateCharacterFromPrompt }, { errorResponse }] =
+      await Promise.all([
+        import('../../web/api/_lib/dreamService.js'),
+        import('../../web/api/_lib/http.js'),
+      ])
+
     const body = characterRequestSchema.parse(await request.json())
     const character = await generateCharacterFromPrompt(body.prompt)
 
@@ -17,6 +17,7 @@ export async function POST(request: Request) {
     })
   } catch (error) {
     console.error('Root character generation failed:', error)
+    const { errorResponse } = await import('../../web/api/_lib/http.js')
     return errorResponse(error)
   }
 }
