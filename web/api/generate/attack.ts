@@ -2,18 +2,15 @@ import {
   attackRequestSchema,
   generateAttackFromPrompt,
 } from '../_lib/dreamService.js'
-import { errorResponse, jsonResponse, methodNotAllowedResponse } from '../_lib/http.js'
+import { errorResponse, jsonResponse } from '../_lib/http.js'
 
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return methodNotAllowedResponse()
-  }
-
+export async function POST(request: Request) {
   try {
     const body = attackRequestSchema.parse(await request.json())
     const attack = await generateAttackFromPrompt(body.prompt, body.character)
     return jsonResponse(attack)
   } catch (error) {
+    console.error('Attack generation failed:', error)
     return errorResponse(error)
   }
 }

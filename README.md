@@ -23,6 +23,7 @@ npm run dev
 
 - Create `web/.env` from `web/.env.example` before running the app.
 - Put your OpenAI key in `web/.env` as `OPENAI_API_KEY=...`.
+- The default model is `gpt-5.4`; if you want a cheaper/faster option later, use `gpt-5.4-mini`.
 - The frontend talks to a local Express server over `/api`, so the key never goes to the browser.
 - Generation now uses OpenAI on the server and clamps the result into game-safe stats and attack values.
 - Production deploys can use Vercel Functions from `web/api`.

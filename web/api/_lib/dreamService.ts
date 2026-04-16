@@ -16,7 +16,7 @@ interface AttackBase {
   projectileSize: number
 }
 
-const model = process.env.OPENAI_MODEL ?? 'gpt-4o-mini'
+const model = process.env.OPENAI_MODEL ?? 'gpt-5.4'
 
 const client = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })

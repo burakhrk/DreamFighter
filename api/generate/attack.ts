@@ -2,13 +2,9 @@ import {
   attackRequestSchema,
   generateAttackFromPrompt,
 } from '../../web/api/_lib/dreamService.js'
-import { errorResponse, methodNotAllowedResponse } from '../../web/api/_lib/http.js'
+import { errorResponse } from '../../web/api/_lib/http.js'
 
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return methodNotAllowedResponse()
-  }
-
+export async function POST(request: Request) {
   try {
     const body = attackRequestSchema.parse(await request.json())
     const attack = await generateAttackFromPrompt(body.prompt, body.character)
@@ -20,6 +16,7 @@ export default async function handler(request: Request) {
       },
     })
   } catch (error) {
+    console.error('Root attack generation failed:', error)
     return errorResponse(error)
   }
 }

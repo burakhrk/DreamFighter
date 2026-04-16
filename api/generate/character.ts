@@ -2,13 +2,9 @@ import {
   characterRequestSchema,
   generateCharacterFromPrompt,
 } from '../../web/api/_lib/dreamService.js'
-import { errorResponse, methodNotAllowedResponse } from '../../web/api/_lib/http.js'
+import { errorResponse } from '../../web/api/_lib/http.js'
 
-export default async function handler(request: Request) {
-  if (request.method !== 'POST') {
-    return methodNotAllowedResponse()
-  }
-
+export async function POST(request: Request) {
   try {
     const body = characterRequestSchema.parse(await request.json())
     const character = await generateCharacterFromPrompt(body.prompt)
@@ -20,6 +16,7 @@ export default async function handler(request: Request) {
       },
     })
   } catch (error) {
+    console.error('Root character generation failed:', error)
     return errorResponse(error)
   }
 }

@@ -23,7 +23,7 @@ Environment variables:
 
 ```env
 OPENAI_API_KEY=your_key_here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_MODEL=gpt-5.4
 ```
 
 The `api/` directory is Vercel-compatible and serves the OpenAI-backed generation endpoints in production.
