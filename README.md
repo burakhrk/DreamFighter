@@ -26,3 +26,4 @@ npm run dev
 - The frontend talks to a local Express server over `/api`, so the key never goes to the browser.
 - Generation now uses OpenAI on the server and clamps the result into game-safe stats and attack values.
 - Production deploys can use Vercel Functions from `web/api`.
+- The repo root also includes `vercel.json` and root `api/` wrappers so Vercel can deploy correctly even if the dashboard keeps the project rooted at the repository root.
