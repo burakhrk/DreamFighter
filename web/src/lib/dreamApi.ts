@@ -2,6 +2,10 @@ import type { AttackBuild, CharacterBuild } from '../types'
 
 interface GenerationErrorPayload {
   error?: string
+  details?: Array<{
+    path?: Array<string | number>
+    message?: string
+  }>
 }
 
 async function requestJson<T>(input: RequestInfo, init: RequestInit) {
@@ -14,6 +18,12 @@ async function requestJson<T>(input: RequestInfo, init: RequestInit) {
       const payload = (await response.json()) as GenerationErrorPayload
       if (payload.error) {
         message = payload.error
+        if (payload.details?.length) {
+          const firstIssue = payload.details[0]
+          const path = firstIssue.path?.length ? ` (${firstIssue.path.join('.')})` : ''
+          const detail = firstIssue.message ? ` ${firstIssue.message}` : ''
+          message = `${payload.error}${path}.${detail}`.trim()
+        }
       }
     } catch {
       // Ignore JSON parsing issues and keep the generic message.
@@ -44,6 +54,19 @@ export async function buildAttackFromPrompt(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ prompt, character }),
+    body: JSON.stringify({
+      prompt,
+      character: {
+        name: character.name,
+        species: character.species,
+        theme: character.theme,
+        stats: {
+          attack: character.stats.attack,
+        },
+        runtime: {
+          attackPowerMultiplier: character.runtime.attackPowerMultiplier,
+        },
+      },
+    }),
   })
 }

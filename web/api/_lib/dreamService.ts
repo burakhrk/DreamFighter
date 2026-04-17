@@ -30,9 +30,16 @@ export const attackCharacterSchema = z.object({
   name: z.string(),
   species: z.string(),
   theme: z.string(),
-  runtime: z.object({
-    attackPowerMultiplier: z.number(),
-  }),
+  stats: z
+    .object({
+      attack: z.number().int().min(0).max(100),
+    })
+    .optional(),
+  runtime: z
+    .object({
+      attackPowerMultiplier: z.number().finite().optional(),
+    })
+    .default({}),
 })
 
 export const attackRequestSchema = z.object({
@@ -439,6 +446,9 @@ function applyAttackRules(
   character: z.infer<typeof attackCharacterSchema>,
   draft: z.infer<typeof attackDraftSchema>,
 ) {
+  const attackPowerMultiplier =
+    character.runtime.attackPowerMultiplier ??
+    clamp(0.84 + (character.stats?.attack ?? 18) * 0.011, 0.84, 1.23)
   const base = { ...attackBaseByFamily[draft.family] }
   const speedFactor = lerp(1.28, 0.7, draft.speedBias / 100)
   const powerFactor = lerp(0.72, 1.46, draft.powerBias / 100)
@@ -469,7 +479,7 @@ function applyAttackRules(
     )
   }
 
-  base.damage = Math.round(base.damage * character.runtime.attackPowerMultiplier)
+  base.damage = Math.round(base.damage * attackPowerMultiplier)
   base.cooldownMs = Math.round(base.cooldownMs)
   base.projectileSpeed = Math.round(base.projectileSpeed)
   base.range = Math.round(base.range)

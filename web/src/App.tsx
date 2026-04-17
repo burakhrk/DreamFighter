@@ -4,6 +4,7 @@ import {
   buildAttackFromPrompt,
   buildCharacterFromPrompt,
 } from './lib/dreamApi'
+import { CharacterBuildArt } from './components/BuildArt'
 import type { AttackBuild, CharacterBuild } from './types'
 
 const SandboxCanvas = lazy(async () => {
@@ -197,13 +198,7 @@ function App() {
                     background: `linear-gradient(145deg, ${character.palette.primary}, ${character.palette.secondary})`,
                   }}
                 >
-                  <div
-                    className="swatch-core"
-                    style={{
-                      boxShadow: `0 0 0 12px ${character.palette.accent}22`,
-                      background: character.palette.core,
-                    }}
-                  />
+                  <CharacterBuildArt character={character} />
                   <span>{character.theme}</span>
                 </div>
 

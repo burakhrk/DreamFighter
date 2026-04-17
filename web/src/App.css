@@ -236,6 +236,12 @@
   font-size: 0.72rem;
 }
 
+.build-swatch-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .swatch-core {
   position: absolute;
   top: 50%;

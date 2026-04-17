@@ -1,5 +1,6 @@
 import dotenv from 'dotenv'
 import express from 'express'
+import { ZodError } from 'zod'
 import {
   attackRequestSchema,
   characterRequestSchema,
@@ -44,6 +45,14 @@ app.listen(port, () => {
 })
 
 function handleRouteError(error: unknown, response: express.Response) {
+  if (error instanceof ZodError) {
+    response.status(400).json({
+      error: 'Invalid request payload.',
+      details: error.issues,
+    })
+    return
+  }
+
   const message = error instanceof Error ? error.message : 'Unexpected server error.'
   response.status(500).json({ error: message })
 }
