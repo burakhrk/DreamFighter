@@ -79,27 +79,26 @@ function App() {
     <main className="app-shell">
       <section className="hero-panel">
         <div className="hero-copy">
-          <p className="eyebrow">DreamFighter Prototype</p>
-          <h1>Prompt bir hayal kur, dummy arena'da aninda test et.</h1>
+          <h1>Fighter'ini kur. Ana atagini sec. Dummy'yi parcala.</h1>
           <p className="hero-body">
-            Ilk dikey dilimimiz web tabanli bir sandbox. Oyuncu once karakter
-            fantezisini, sonra saldiri fantezisini yazar; sistem bunu clamp'li
-            statlar ve kontrol edilen combat davranisina cevirir.
+            Karakter fantazini yaz, ana atagini kilitle ve saniyeler icinde
+            arena'ya in. Hareket et, zıpla, aim al, dummy'yi baskila; loadout
+            istedigin gibi hissettirmiyorsa aninda reroll atip tekrar dene.
           </p>
         </div>
 
         <div className="hero-metrics">
           <article>
-            <span>Mode</span>
-            <strong>Combat Sandbox</strong>
+            <span>Arena Loop</span>
+            <strong>Forge / Fire / Reroll</strong>
           </article>
           <article>
-            <span>Focus</span>
-            <strong>Creation First</strong>
+            <span>Controls</span>
+            <strong>A / D move, Space jump, Mouse aim, Left click fire</strong>
           </article>
           <article>
-            <span>Generation</span>
-            <strong>Mock, API-ready</strong>
+            <span>Combat Rule</span>
+            <strong>Wild fantasy in, stat + DPS cap out</strong>
           </article>
         </div>
       </section>
