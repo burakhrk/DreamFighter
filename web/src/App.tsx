@@ -17,6 +17,26 @@ const DEFAULT_CHARACTER_PROMPT =
 const DEFAULT_ATTACK_PROMPT =
   'A chain-fed black hole cannon that spits bursts of fire'
 const MAX_LOG_ENTRIES = 40
+const SURPRISE_CHARACTER_PROMPTS = [
+  'A moon-cursed boxer made of stained glass shards and stubborn bravado',
+  'A swamp knight frog with a heroic grin, oversized armor, and anchor-heavy footwork',
+  'A neon alley duelist stitched together from arcade tokens and lightning scars',
+  'A tiny goblin mechanic piloting a wobbling scrap exosuit with tank instincts',
+  'A velvet caped dream beast that fights like a wrestler and taunts like a comedian',
+  'A fungal ranger with a soft smile, heavy boots, and impossible battlefield patience',
+]
+const SURPRISE_ATTACK_PROMPTS = [
+  'A solar whip launcher that snaps into explosive light crescents',
+  'A tomb engine that fires slow cursed bells and shockwave pulses',
+  'A cryo shotgun built from shattered mirrors and collapsing frost',
+  'A living ink cannon that spits raven swarms and void splashes',
+  'A magma gauntlet that hammers the ground and erupts in chained bursts',
+  'A thunder bow that releases rail-fast arrows wrapped in static arcs',
+]
+
+function pickRandom<T>(items: T[]) {
+  return items[Math.floor(Math.random() * items.length)]
+}
 
 function App() {
   const [characterPrompt, setCharacterPrompt] = useState(DEFAULT_CHARACTER_PROMPT)
@@ -82,6 +102,47 @@ function App() {
   }, [])
 
   async function generateCharacter() {
+    await generateCharacterFromPromptValue(characterPrompt)
+  }
+
+  async function generateAttack() {
+    await generateAttackFromPromptValue(attackPrompt)
+  }
+
+  async function surpriseCharacter() {
+    const prompt = pickRandom(SURPRISE_CHARACTER_PROMPTS)
+    setCharacterPrompt(prompt)
+    addLog({
+      scope: 'generation',
+      level: 'info',
+      message: `Surprise character prompt selected: ${prompt}`,
+    })
+    await generateCharacterFromPromptValue(prompt)
+  }
+
+  async function surpriseAttack() {
+    if (!character) {
+      const message = 'Generate a character first.'
+      setError(message)
+      addLog({
+        scope: 'generation',
+        level: 'warn',
+        message: 'Attack surprise is blocked until a character exists.',
+      })
+      return
+    }
+
+    const prompt = pickRandom(SURPRISE_ATTACK_PROMPTS)
+    setAttackPrompt(prompt)
+    addLog({
+      scope: 'generation',
+      level: 'info',
+      message: `Surprise attack prompt selected: ${prompt}`,
+    })
+    await generateAttackFromPromptValue(prompt)
+  }
+
+  async function generateCharacterFromPromptValue(prompt: string) {
     setError(null)
     setIsCharacterLoading(true)
     addLog({
@@ -91,7 +152,7 @@ function App() {
     })
 
     try {
-      const result = await buildCharacterFromPrompt(characterPrompt)
+      const result = await buildCharacterFromPrompt(prompt)
       setCharacter(result)
       setAttack(null)
       setPaused(false)
@@ -117,7 +178,7 @@ function App() {
     }
   }
 
-  async function generateAttack() {
+  async function generateAttackFromPromptValue(prompt: string) {
     if (!character) {
       const message = 'Generate a character first.'
       setError(message)
@@ -138,7 +199,7 @@ function App() {
     })
 
     try {
-      const result = await buildAttackFromPrompt(attackPrompt, character)
+      const result = await buildAttackFromPrompt(prompt, character)
       setAttack(result)
       setPaused(false)
       setRestartTick((value) => value + 1)
@@ -175,13 +236,22 @@ function App() {
               <p className="panel-kicker">Loadout</p>
               <h2>{sandboxReady ? 'Build Control' : 'Forge Your Fighter'}</h2>
             </div>
-            <button
-              className="ghost-button"
-              disabled={isCharacterLoading}
-              onClick={() => void generateCharacter()}
-            >
-              {isCharacterLoading ? 'Forging...' : 'Reroll'}
-            </button>
+            <div className="header-actions">
+              <button
+                className="ghost-button"
+                disabled={isCharacterLoading}
+                onClick={() => void surpriseCharacter()}
+              >
+                Surprise Me
+              </button>
+              <button
+                className="ghost-button"
+                disabled={isCharacterLoading}
+                onClick={() => void generateCharacter()}
+              >
+                {isCharacterLoading ? 'Forging...' : 'Reroll'}
+              </button>
+            </div>
           </div>
 
           <label className="field">
@@ -209,13 +279,22 @@ function App() {
               <p className="panel-kicker">Step 2</p>
               <h2>Attack Prompt</h2>
             </div>
-            <button
-              className="ghost-button"
-              disabled={isAttackLoading || !character}
-              onClick={() => void generateAttack()}
-            >
-              {isAttackLoading ? 'Recasting...' : 'Reroll'}
-            </button>
+            <div className="header-actions">
+              <button
+                className="ghost-button"
+                disabled={isAttackLoading || !character}
+                onClick={() => void surpriseAttack()}
+              >
+                Surprise Me
+              </button>
+              <button
+                className="ghost-button"
+                disabled={isAttackLoading || !character}
+                onClick={() => void generateAttack()}
+              >
+                {isAttackLoading ? 'Recasting...' : 'Reroll'}
+              </button>
+            </div>
           </div>
 
           <label className="field">

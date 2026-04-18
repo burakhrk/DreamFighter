@@ -106,6 +106,13 @@
   gap: 1rem;
 }
 
+.header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.65rem;
+}
+
 .panel-header.compact {
   margin-bottom: 1rem;
 }
@@ -432,6 +439,11 @@
   .sandbox-footer {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .header-actions {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .sandbox-actions {
