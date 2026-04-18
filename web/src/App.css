@@ -4,7 +4,6 @@
   padding: 1.5rem;
 }
 
-.hero-panel,
 .panel {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(248, 239, 225, 0.9)),
@@ -15,24 +14,6 @@
   backdrop-filter: blur(18px);
 }
 
-.hero-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1.5fr) minmax(20rem, 0.9fr);
-  gap: 1.25rem;
-  padding: 1.5rem;
-}
-
-.hero-copy h1 {
-  margin: 0.35rem 0 0.85rem;
-  max-width: 13ch;
-}
-
-.hero-body {
-  max-width: 62ch;
-  color: var(--muted);
-}
-
-.eyebrow,
 .panel-kicker {
   margin: 0;
   color: var(--accent-strong);
@@ -42,19 +23,6 @@
   font-weight: 700;
 }
 
-.hero-metrics {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.hero-metrics article {
-  padding: 1rem 1.1rem;
-  border-radius: 20px;
-  background: linear-gradient(145deg, rgba(16, 79, 83, 0.1), rgba(241, 117, 52, 0.1));
-  border: 1px solid rgba(16, 79, 83, 0.12);
-}
-
-.hero-metrics span,
 .sandbox-footer span,
 .mini-stat span,
 .stat-row span {
@@ -65,7 +33,6 @@
   color: var(--muted);
 }
 
-.hero-metrics strong,
 .sandbox-footer strong,
 .mini-stat strong,
 .stat-row strong {
@@ -73,10 +40,18 @@
   margin-top: 0.25rem;
 }
 
-.studio-grid {
+.play-layout {
   display: grid;
-  grid-template-columns: minmax(18rem, 0.95fr) minmax(18rem, 1.05fr);
   gap: 1.5rem;
+  align-items: start;
+}
+
+.play-layout.is-setup {
+  grid-template-columns: minmax(21rem, 25rem) minmax(0, 1fr);
+}
+
+.play-layout.is-live {
+  grid-template-columns: minmax(17rem, 19rem) minmax(0, 1fr) minmax(19rem, 23rem);
 }
 
 .panel-form,
@@ -84,11 +59,37 @@
   padding: 1.5rem;
 }
 
+.launch-panel {
+  align-self: start;
+}
+
+.launch-panel.is-compact {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.arena-panel {
+  min-width: 0;
+}
+
 .panel-build {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: 1fr;
   gap: 1rem;
   padding: 1rem;
+}
+
+.stat-rail {
+  align-self: start;
+}
+
+.stat-rail.is-visible {
+  position: sticky;
+  top: 1.5rem;
+}
+
+.stat-rail.is-hidden {
+  display: none;
 }
 
 .build-column {
@@ -414,10 +415,17 @@
 }
 
 @media (max-width: 1080px) {
-  .hero-panel,
-  .studio-grid,
+  .play-layout,
   .panel-build {
     grid-template-columns: 1fr;
+  }
+
+  .launch-panel.is-compact {
+    position: static;
+  }
+
+  .stat-rail.is-visible {
+    position: static;
   }
 
   .sandbox-header,
@@ -438,7 +446,7 @@
 
   .panel-form,
   .sandbox-panel,
-  .hero-panel {
+  .log-panel {
     padding: 1rem;
   }
 

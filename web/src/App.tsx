@@ -164,96 +164,16 @@ function App() {
   }
 
   const sandboxReady = Boolean(character && attack)
+  const showBuildRail = sandboxReady
 
   return (
     <main className="app-shell">
-      <section className="sandbox-panel panel">
-        <div className="sandbox-header">
-          <div>
-            <p className="panel-kicker">Arena</p>
-            <h2>Live Test Range</h2>
-          </div>
-
-          <div className="sandbox-actions">
-            <button
-              className="ghost-button"
-              disabled={!sandboxReady}
-              onClick={() =>
-                setPaused((value) => {
-                  const next = !value
-                  addLog({
-                    scope: 'sandbox',
-                    level: 'info',
-                    message: next ? 'Sandbox paused.' : 'Sandbox resumed.',
-                  })
-                  return next
-                })
-              }
-            >
-              {paused ? 'Resume' : 'Pause'}
-            </button>
-            <button
-              className="ghost-button"
-              disabled={!sandboxReady}
-              onClick={() => {
-                addLog({
-                  scope: 'sandbox',
-                  level: 'warn',
-                  message: 'Sandbox restart requested.',
-                })
-                setRestartTick((value) => value + 1)
-              }}
-            >
-              Restart
-            </button>
-          </div>
-        </div>
-
-        <Suspense
-          fallback={
-            <div className="sandbox-placeholder">
-              <div>
-                <strong>Loading sandbox...</strong>
-                <p>The combat scene is loading with the Phaser chunk.</p>
-              </div>
-            </div>
-          }
-        >
-          <SandboxCanvas
-            attack={attack}
-            character={character}
-            onLog={addLog}
-            paused={paused}
-            restartTick={restartTick}
-          />
-        </Suspense>
-
-        <div className="sandbox-footer">
-          <div>
-            <span>Move</span>
-            <strong>A / D</strong>
-          </div>
-          <div>
-            <span>Jump</span>
-            <strong>Space</strong>
-          </div>
-          <div>
-            <span>Aim</span>
-            <strong>Mouse</strong>
-          </div>
-          <div>
-            <span>Fire</span>
-            <strong>Left Click</strong>
-          </div>
-        </div>
-      </section>
-
-      <section className="studio-grid">
-        <article className="panel panel-form">
+      <section className={`play-layout ${sandboxReady ? 'is-live' : 'is-setup'}`}>
+        <article className={`panel panel-form launch-panel ${sandboxReady ? 'is-compact' : ''}`}>
           <div className="panel-header">
             <div>
-              <p className="panel-kicker">Step 1</p>
-              <h2>Character Prompt</h2>
+              <p className="panel-kicker">Loadout</p>
+              <h2>{sandboxReady ? 'Build Control' : 'Forge Your Fighter'}</h2>
             </div>
             <button
               className="ghost-button"
@@ -318,14 +238,96 @@ function App() {
           </button>
 
           <div className="status-note">
-            <strong>Rules layer:</strong> the prompt stays wild, but stat and
-            DPS caps keep the sandbox playable.
+            {sandboxReady
+              ? 'Loadout locked in. Tune prompts, reroll, and jump back into the test range anytime.'
+              : 'Start with a fighter concept, then define one primary attack to bring the arena online.'}
           </div>
 
           {error ? <p className="error-banner">{error}</p> : null}
         </article>
 
-        <article className="panel panel-build">
+        <section className="sandbox-panel panel arena-panel">
+          <div className="sandbox-header">
+            <div>
+              <p className="panel-kicker">Arena</p>
+              <h2>{sandboxReady ? 'Live Test Range' : 'Booting Range'}</h2>
+            </div>
+
+            <div className="sandbox-actions">
+              <button
+                className="ghost-button"
+                disabled={!sandboxReady}
+                onClick={() =>
+                  setPaused((value) => {
+                    const next = !value
+                    addLog({
+                      scope: 'sandbox',
+                      level: 'info',
+                      message: next ? 'Sandbox paused.' : 'Sandbox resumed.',
+                    })
+                    return next
+                  })
+                }
+              >
+                {paused ? 'Resume' : 'Pause'}
+              </button>
+              <button
+                className="ghost-button"
+                disabled={!sandboxReady}
+                onClick={() => {
+                  addLog({
+                    scope: 'sandbox',
+                    level: 'warn',
+                    message: 'Sandbox restart requested.',
+                  })
+                  setRestartTick((value) => value + 1)
+                }}
+              >
+                Restart
+              </button>
+            </div>
+          </div>
+
+          <Suspense
+            fallback={
+              <div className="sandbox-placeholder">
+                <div>
+                  <strong>Loading sandbox...</strong>
+                  <p>The combat scene is loading with the Phaser chunk.</p>
+                </div>
+              </div>
+            }
+          >
+            <SandboxCanvas
+              attack={attack}
+              character={character}
+              onLog={addLog}
+              paused={paused}
+              restartTick={restartTick}
+            />
+          </Suspense>
+
+          <div className="sandbox-footer">
+            <div>
+              <span>Move</span>
+              <strong>A / D</strong>
+            </div>
+            <div>
+              <span>Jump</span>
+              <strong>Space</strong>
+            </div>
+            <div>
+              <span>Aim</span>
+              <strong>Mouse</strong>
+            </div>
+            <div>
+              <span>Fire</span>
+              <strong>Left Click</strong>
+            </div>
+          </div>
+        </section>
+
+        <article className={`panel panel-build stat-rail ${showBuildRail ? 'is-visible' : 'is-hidden'}`}>
           <div className="build-column">
             <div className="panel-header compact">
               <div>
@@ -429,8 +431,7 @@ function App() {
               </>
             ) : (
               <p className="empty-copy">
-                Once the fighter is ready, generate a primary attack to see
-                the weapon family, combat tuning, and elemental flavor.
+                Build data slides in here once the full loadout is generated.
               </p>
             )}
           </div>
