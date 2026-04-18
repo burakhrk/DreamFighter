@@ -73,10 +73,10 @@ export function SandboxCanvas({
     return (
       <div className="sandbox-placeholder">
         <div>
-          <strong>Sandbox hazir bekliyor.</strong>
+          <strong>The sandbox is standing by.</strong>
           <p>
-            Once karakteri, sonra ana saldiriyi olustur. Sonra bu alanda hereket
-            eden dummy'ye karsi test edecegiz.
+            Generate a fighter, lock in a primary attack, and then test the
+            build against the moving dummy here.
           </p>
         </div>
       </div>

@@ -13,8 +13,9 @@ const SandboxCanvas = lazy(async () => {
 })
 
 const DEFAULT_CHARACTER_PROMPT =
-  'Kurbaga temali, biraz tankimsi ama komik duran bir arena savascisi'
-const DEFAULT_ATTACK_PROMPT = 'Alev sacan zincirli bir kara delik tufegi'
+  'A frog-themed arena fighter that feels sturdy, goofy, and hard to knock down'
+const DEFAULT_ATTACK_PROMPT =
+  'A chain-fed black hole cannon that spits bursts of fire'
 const MAX_LOG_ENTRIES = 40
 
 function App() {
@@ -166,29 +167,84 @@ function App() {
 
   return (
     <main className="app-shell">
-      <section className="hero-panel">
-        <div className="hero-copy">
-          <h1>Fighter'ini kur. Ana atagini sec. Dummy'yi parcala.</h1>
-          <p className="hero-body">
-            Karakter fantazini yaz, ana atagini kilitle ve saniyeler icinde
-            arena'ya in. Hareket et, zipla, aim al, dummy'yi baskila; loadout
-            istedigin gibi hissettirmiyorsa aninda reroll atip tekrar dene.
-          </p>
+      <section className="sandbox-panel panel">
+        <div className="sandbox-header">
+          <div>
+            <p className="panel-kicker">Arena</p>
+            <h2>Live Test Range</h2>
+          </div>
+
+          <div className="sandbox-actions">
+            <button
+              className="ghost-button"
+              disabled={!sandboxReady}
+              onClick={() =>
+                setPaused((value) => {
+                  const next = !value
+                  addLog({
+                    scope: 'sandbox',
+                    level: 'info',
+                    message: next ? 'Sandbox paused.' : 'Sandbox resumed.',
+                  })
+                  return next
+                })
+              }
+            >
+              {paused ? 'Resume' : 'Pause'}
+            </button>
+            <button
+              className="ghost-button"
+              disabled={!sandboxReady}
+              onClick={() => {
+                addLog({
+                  scope: 'sandbox',
+                  level: 'warn',
+                  message: 'Sandbox restart requested.',
+                })
+                setRestartTick((value) => value + 1)
+              }}
+            >
+              Restart
+            </button>
+          </div>
         </div>
 
-        <div className="hero-metrics">
-          <article>
-            <span>Arena Loop</span>
-            <strong>Forge / Fire / Reroll</strong>
-          </article>
-          <article>
-            <span>Controls</span>
-            <strong>A / D move, Space jump, Mouse aim, Left click fire</strong>
-          </article>
-          <article>
-            <span>Combat Rule</span>
-            <strong>Wild fantasy in, stat + DPS cap out</strong>
-          </article>
+        <Suspense
+          fallback={
+            <div className="sandbox-placeholder">
+              <div>
+                <strong>Loading sandbox...</strong>
+                <p>The combat scene is loading with the Phaser chunk.</p>
+              </div>
+            </div>
+          }
+        >
+          <SandboxCanvas
+            attack={attack}
+            character={character}
+            onLog={addLog}
+            paused={paused}
+            restartTick={restartTick}
+          />
+        </Suspense>
+
+        <div className="sandbox-footer">
+          <div>
+            <span>Move</span>
+            <strong>A / D</strong>
+          </div>
+          <div>
+            <span>Jump</span>
+            <strong>Space</strong>
+          </div>
+          <div>
+            <span>Aim</span>
+            <strong>Mouse</strong>
+          </div>
+          <div>
+            <span>Fire</span>
+            <strong>Left Click</strong>
+          </div>
         </div>
       </section>
 
@@ -209,12 +265,12 @@ function App() {
           </div>
 
           <label className="field">
-            <span>Karakter fantazisi</span>
+            <span>Character fantasy</span>
             <textarea
               rows={5}
               value={characterPrompt}
               onChange={(event) => setCharacterPrompt(event.target.value)}
-              placeholder="Ornek: Zehirli ama komik gorunen, iri zirhli bir kurbaga savascisi"
+              placeholder="Example: A toxic armored frog bruiser with a goofy grin and tank instincts"
             />
           </label>
 
@@ -243,12 +299,12 @@ function App() {
           </div>
 
           <label className="field">
-            <span>Ana saldiri fantazisi</span>
+            <span>Primary attack fantasy</span>
             <textarea
               rows={5}
               value={attackPrompt}
               onChange={(event) => setAttackPrompt(event.target.value)}
-              placeholder="Ornek: Alev sacan zincirli bir kara delik tufegi"
+              placeholder="Example: A chained black hole blaster that spits burning rounds"
               disabled={!character}
             />
           </label>
@@ -262,8 +318,8 @@ function App() {
           </button>
 
           <div className="status-note">
-            <strong>Rules layer:</strong> prompt serbest, ama stat ve DPS cap
-            oyunu koruyor.
+            <strong>Rules layer:</strong> the prompt stays wild, but stat and
+            DPS caps keep the sandbox playable.
           </div>
 
           {error ? <p className="error-banner">{error}</p> : null}
@@ -312,8 +368,8 @@ function App() {
               </>
             ) : (
               <p className="empty-copy">
-                Character promptunu calistirdiginda burada stat butcesi ve
-                gorsel tema gorunecek.
+                Run the character prompt to reveal the fighter silhouette,
+                stat spread, and overall theme.
               </p>
             )}
           </div>
@@ -373,93 +429,12 @@ function App() {
               </>
             ) : (
               <p className="empty-copy">
-                Character hazir olduktan sonra saldiri promptu burada tek ana
-                ataga donusecek.
+                Once the fighter is ready, generate a primary attack to see
+                the weapon family, combat tuning, and elemental flavor.
               </p>
             )}
           </div>
         </article>
-      </section>
-
-      <section className="sandbox-panel panel">
-        <div className="sandbox-header">
-          <div>
-            <p className="panel-kicker">Arena</p>
-            <h2>Dummy Test Range</h2>
-          </div>
-
-          <div className="sandbox-actions">
-            <button
-              className="ghost-button"
-              disabled={!sandboxReady}
-              onClick={() =>
-                setPaused((value) => {
-                  const next = !value
-                  addLog({
-                    scope: 'sandbox',
-                    level: 'info',
-                    message: next ? 'Sandbox paused.' : 'Sandbox resumed.',
-                  })
-                  return next
-                })
-              }
-            >
-              {paused ? 'Resume' : 'Pause'}
-            </button>
-            <button
-              className="ghost-button"
-              disabled={!sandboxReady}
-              onClick={() => {
-                addLog({
-                  scope: 'sandbox',
-                  level: 'warn',
-                  message: 'Sandbox restart requested.',
-                })
-                setRestartTick((value) => value + 1)
-              }}
-            >
-              Restart
-            </button>
-          </div>
-        </div>
-
-        <Suspense
-          fallback={
-            <div className="sandbox-placeholder">
-              <div>
-                <strong>Loading sandbox...</strong>
-                <p>Combat sahnesi Phaser chunk'u ile birlikte yukleniyor.</p>
-              </div>
-            </div>
-          }
-        >
-          <SandboxCanvas
-            attack={attack}
-            character={character}
-            onLog={addLog}
-            paused={paused}
-            restartTick={restartTick}
-          />
-        </Suspense>
-
-        <div className="sandbox-footer">
-          <div>
-            <span>Controls</span>
-            <strong>A / D move</strong>
-          </div>
-          <div>
-            <span>Jump</span>
-            <strong>Space</strong>
-          </div>
-          <div>
-            <span>Aim</span>
-            <strong>Mouse pointer</strong>
-          </div>
-          <div>
-            <span>Fire</span>
-            <strong>Left click</strong>
-          </div>
-        </div>
       </section>
 
       <section className="panel log-panel">
@@ -490,8 +465,8 @@ function App() {
             ))
           ) : (
             <p className="empty-copy">
-              Runtime logs burada akacak. Generate, restart, combat ve browser
-              error olaylarini bu panelden izleyebilirsin.
+              Runtime logs appear here. Use this feed to watch generation,
+              combat flow, sandbox restarts, and browser errors.
             </p>
           )}
         </div>
