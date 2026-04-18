@@ -1,7 +1,14 @@
 import * as Phaser from 'phaser'
-import type { AttackBuild, CharacterBuild, StatusEffect } from '../types'
+import type {
+  AttackBuild,
+  CharacterBuild,
+  GameLogEntry,
+  LogLevel,
+  StatusEffect,
+} from '../types'
 
 type PhysicsSprite = Phaser.Physics.Arcade.Sprite
+type SceneLogger = (entry: Omit<GameLogEntry, 'id' | 'timestamp'>) => void
 
 interface DamageableTarget extends PhysicsSprite {
   dreamHealth: number
@@ -15,13 +22,15 @@ const GAME_HEIGHT = 540
 const FLOOR_Y = 454
 const PLAYER_START_X = 200
 const DUMMY_START_X = 760
+const GUARD_LOG_INTERVAL_MS = 600
 
 export function createDreamSandbox(
   parent: HTMLDivElement,
   character: CharacterBuild,
   attack: AttackBuild,
+  onLog?: SceneLogger,
 ) {
-  const scene = new DreamSandboxScene(character, attack)
+  const scene = new DreamSandboxScene(character, attack, onLog)
 
   return new Phaser.Game({
     type: Phaser.AUTO,
@@ -51,6 +60,8 @@ class DreamSandboxScene extends Phaser.Scene {
 
   private readonly character: CharacterBuild
 
+  private readonly onLog?: SceneLogger
+
   private player!: PhysicsSprite
 
   private dummy!: DamageableTarget
@@ -79,13 +90,19 @@ class DreamSandboxScene extends Phaser.Scene {
 
   private audioContext?: AudioContext
 
-  constructor(character: CharacterBuild, attack: AttackBuild) {
+  private isSceneActive = false
+
+  private lastGuardLogAt = 0
+
+  constructor(character: CharacterBuild, attack: AttackBuild, onLog?: SceneLogger) {
     super('dream-sandbox')
     this.character = character
     this.attack = attack
+    this.onLog = onLog
   }
 
   create() {
+    this.isSceneActive = true
     this.drawBackground()
     this.createTextures()
     this.createArena()
@@ -98,9 +115,25 @@ class DreamSandboxScene extends Phaser.Scene {
       right: Phaser.Input.Keyboard.KeyCodes.D,
       jump: Phaser.Input.Keyboard.KeyCodes.SPACE,
     }) as DreamSandboxScene['keys']
+
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.isSceneActive = false
+      this.log('sandbox', 'info', 'Sandbox scene shutting down.')
+    })
+
+    this.events.once(Phaser.Scenes.Events.DESTROY, () => {
+      this.isSceneActive = false
+      this.log('sandbox', 'info', 'Sandbox scene destroyed.')
+    })
+
+    this.log('sandbox', 'info', 'Sandbox scene created.')
   }
 
   update(time: number) {
+    if (!this.canRunFrame('update loop')) {
+      return
+    }
+
     const body = this.player.body as Phaser.Physics.Arcade.Body
     const pointer = this.input.activePointer
     const moveSpeed = this.character.runtime.moveSpeed
@@ -128,16 +161,20 @@ class DreamSandboxScene extends Phaser.Scene {
       this.fire(pointer)
     }
 
-    this.playerHealthText.setText(
-      `Player HP ${this.character.runtime.maxHealth}  DEF ${Math.round(
-        this.character.runtime.defenseRatio * 100,
-      )}%`,
-    )
+    if (this.playerHealthText?.active) {
+      this.playerHealthText.setText(
+        `Player HP ${this.character.runtime.maxHealth}  DEF ${Math.round(
+          this.character.runtime.defenseRatio * 100,
+        )}%`,
+      )
+    }
 
-    const activeStatus = this.attack.statusEffect ? this.attack.statusEffect : 'none'
-    this.statusText.setText(
-      `Attack ${this.attack.family}  |  Element ${this.attack.element}  |  Status ${activeStatus}`,
-    )
+    if (this.statusText?.active) {
+      const activeStatus = this.attack.statusEffect ? this.attack.statusEffect : 'none'
+      this.statusText.setText(
+        `Attack ${this.attack.family}  |  Element ${this.attack.element}  |  Status ${activeStatus}`,
+      )
+    }
   }
 
   private drawBackground() {
@@ -205,7 +242,10 @@ class DreamSandboxScene extends Phaser.Scene {
       const graphics = this.make.graphics()
       graphics.fillStyle(Phaser.Display.Color.HexStringToColor(this.attack.visuals.primary).color)
       graphics.fillCircle(14, 14, 10)
-      graphics.fillStyle(Phaser.Display.Color.HexStringToColor(this.attack.visuals.highlight).color, 0.9)
+      graphics.fillStyle(
+        Phaser.Display.Color.HexStringToColor(this.attack.visuals.highlight).color,
+        0.9,
+      )
       graphics.fillCircle(14, 14, 5)
       graphics.generateTexture('dream-projectile', 28, 28)
       graphics.destroy()
@@ -316,6 +356,10 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private updateAimGuide(pointer: Phaser.Input.Pointer) {
+    if (!this.aimGuide?.active) {
+      return
+    }
+
     this.aimGuide.clear()
     this.aimGuide.lineStyle(2, 0xffefc7, 0.42)
     this.aimGuide.beginPath()
@@ -325,6 +369,11 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private updateDummyPatrol() {
+    if (!this.hasArcadeBody(this.dummy)) {
+      this.logGuard('Dummy patrol skipped because the dummy body is unavailable.')
+      return
+    }
+
     if (this.dummy.dreamHealth <= 0) {
       this.dummy.setVelocityX(0)
       return
@@ -338,6 +387,10 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private updateUi(time: number) {
+    if (!this.attackTimerText?.active || !this.dummyHealthText?.active || !this.hasArcadeBody(this.dummy)) {
+      return
+    }
+
     const cooldown = Math.max(0, this.nextFireAt - time)
     this.attackTimerText.setText(
       cooldown > 0 ? `Cooldown ${Math.ceil(cooldown)} ms` : 'Cooldown ready',
@@ -348,6 +401,10 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private fire(pointer: Phaser.Input.Pointer) {
+    if (!this.canRunFrame('fire')) {
+      return
+    }
+
     const direction = new Phaser.Math.Vector2(
       pointer.worldX - this.player.x,
       pointer.worldY - (this.player.y - 18),
@@ -408,15 +465,19 @@ class DreamSandboxScene extends Phaser.Scene {
         velocity.x * this.attack.runtime.projectileSpeed,
         velocity.y * this.attack.runtime.projectileSpeed,
       )
-
-      this.createTrail(projectile)
     }
+
+    this.log('combat', 'info', `Primary attack fired (${this.attack.family}).`)
   }
 
   private fireShortRange(direction: Phaser.Math.Vector2) {
     const reach = this.attack.runtime.range
     const burst = this.add.graphics()
-    burst.lineStyle(12, Phaser.Display.Color.HexStringToColor(this.attack.visuals.highlight).color, 0.9)
+    burst.lineStyle(
+      12,
+      Phaser.Display.Color.HexStringToColor(this.attack.visuals.highlight).color,
+      0.9,
+    )
     burst.beginPath()
     burst.moveTo(this.player.x, this.player.y - 18)
     burst.lineTo(
@@ -457,6 +518,7 @@ class DreamSandboxScene extends Phaser.Scene {
     }
 
     this.playImpactTone(210, 0.04)
+    this.log('combat', 'info', `Melee attack swung (${this.attack.family}).`)
   }
 
   private fireBeam(direction: Phaser.Math.Vector2) {
@@ -500,9 +562,15 @@ class DreamSandboxScene extends Phaser.Scene {
     })
 
     this.playImpactTone(260, 0.05)
+    this.log('combat', 'info', 'Beam attack fired.')
   }
 
   private hitDummy(dummy: DamageableTarget, projectile: PhysicsSprite) {
+    if (!this.hasArcadeBody(dummy)) {
+      this.logGuard('Projectile hit skipped because the dummy body is unavailable.')
+      return
+    }
+
     const damage = Number(projectile.getData('damage') ?? this.attack.runtime.damage)
     const knockback = Number(projectile.getData('knockback') ?? this.attack.runtime.knockback)
     const statusEffect = (projectile.getData('statusEffect') ??
@@ -516,12 +584,21 @@ class DreamSandboxScene extends Phaser.Scene {
     knockback: number,
     statusEffect: StatusEffect,
   ) {
+    if (!this.hasArcadeBody(dummy) || !this.hasArcadeBody(this.player)) {
+      this.logGuard('Damage application skipped because an arcade body is unavailable.')
+      return
+    }
+
     if (dummy.dreamHealth <= 0) return
 
     dummy.dreamHealth = Math.max(0, dummy.dreamHealth - damage)
     dummy.setTint(0xffffff)
     dummy.setVelocityX((this.player.flipX ? -1 : 1) * knockback)
-    this.time.delayedCall(70, () => dummy.clearTint())
+    this.time.delayedCall(70, () => {
+      if (dummy.active) {
+        dummy.clearTint()
+      }
+    })
     this.cameras.main.shake(80, 0.003)
 
     const number = this.add
@@ -542,6 +619,11 @@ class DreamSandboxScene extends Phaser.Scene {
 
     this.playImpactTone(180 + damage * 2, 0.05)
     this.applyStatus(dummy, statusEffect)
+    this.log(
+      'combat',
+      'info',
+      `Dummy took ${damage} damage${statusEffect ? ` with ${statusEffect}` : ''}.`,
+    )
 
     if (dummy.dreamHealth <= 0) {
       this.onDummyDown(dummy)
@@ -549,9 +631,10 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private applyStatus(dummy: DamageableTarget, statusEffect: StatusEffect) {
-    if (!statusEffect) return
+    if (!statusEffect || !this.hasArcadeBody(dummy)) return
 
     dummy.statusTimer?.destroy()
+    this.log('combat', 'info', `Status applied: ${statusEffect}.`)
 
     const iterations = statusEffect === 'slow' ? 2 : 3
     const damagePerTick = statusEffect === 'burn' ? 4 : statusEffect === 'poison' ? 5 : 2
@@ -560,7 +643,7 @@ class DreamSandboxScene extends Phaser.Scene {
       delay: 320,
       repeat: iterations - 1,
       callback: () => {
-        if (dummy.dreamHealth <= 0) return
+        if (!this.hasArcadeBody(dummy) || dummy.dreamHealth <= 0) return
 
         dummy.dreamHealth = Math.max(0, dummy.dreamHealth - damagePerTick)
 
@@ -592,8 +675,14 @@ class DreamSandboxScene extends Phaser.Scene {
   }
 
   private onDummyDown(dummy: DamageableTarget) {
+    if (!this.hasArcadeBody(dummy)) {
+      this.logGuard('Dummy down handler skipped because the dummy body is unavailable.')
+      return
+    }
+
     dummy.setVelocity(0, 0)
     dummy.setTint(0x89a5ab)
+    this.log('combat', 'warn', 'Dummy defeated. Reboot sequence started.')
 
     const banner = this.add
       .text(dummy.x - 56, dummy.y - 96, 'Dummy rebooting...', {
@@ -604,16 +693,24 @@ class DreamSandboxScene extends Phaser.Scene {
       .setResolution(2)
 
     this.time.delayedCall(1300, () => {
-      banner.destroy()
+      if (banner.active) {
+        banner.destroy()
+      }
       this.resetDummy()
     })
   }
 
   private resetDummy() {
+    if (!this.hasArcadeBody(this.dummy)) {
+      this.logGuard('Dummy reset skipped because the dummy body is unavailable.')
+      return
+    }
+
     this.dummy.clearTint()
     this.dummy.dreamHealth = this.dummy.maxDreamHealth
     this.dummy.setPosition(DUMMY_START_X, FLOOR_Y - 44)
     this.dummy.setVelocity(0, 0)
+    this.log('combat', 'info', 'Dummy reboot complete.')
   }
 
   private cleanupProjectiles() {
@@ -634,27 +731,6 @@ class DreamSandboxScene extends Phaser.Scene {
         projectile.destroy()
       }
     }
-  }
-
-  private createTrail(projectile: PhysicsSprite) {
-    const trailColor = Phaser.Display.Color.HexStringToColor(this.attack.visuals.secondary).color
-
-    this.time.addEvent({
-      delay: 50,
-      repeat: 7,
-      callback: () => {
-        if (!projectile.active) return
-
-        const particle = this.add.circle(projectile.x, projectile.y, 4, trailColor, 0.32)
-        this.tweens.add({
-          targets: particle,
-          alpha: 0,
-          scale: 0.35,
-          duration: 220,
-          onComplete: () => particle.destroy(),
-        })
-      },
-    })
   }
 
   private playImpactTone(frequency: number, duration: number) {
@@ -678,5 +754,37 @@ class DreamSandboxScene extends Phaser.Scene {
       this.audioContext.currentTime + duration,
     )
     oscillator.stop(this.audioContext.currentTime + duration)
+  }
+
+  private canRunFrame(context: string) {
+    if (
+      !this.isSceneActive ||
+      !this.keys ||
+      !this.hasArcadeBody(this.player) ||
+      !this.hasArcadeBody(this.dummy)
+    ) {
+      this.logGuard(`Frame skipped during ${context} because the scene is tearing down.`)
+      return false
+    }
+
+    return true
+  }
+
+  private hasArcadeBody(target: PhysicsSprite | DamageableTarget | undefined) {
+    return Boolean(target?.active && target.body)
+  }
+
+  private log(scope: GameLogEntry['scope'], level: LogLevel, message: string) {
+    this.onLog?.({ scope, level, message })
+  }
+
+  private logGuard(message: string) {
+    const now = this.time?.now ?? Date.now()
+    if (now - this.lastGuardLogAt < GUARD_LOG_INTERVAL_MS) {
+      return
+    }
+
+    this.lastGuardLogAt = now
+    this.log('sandbox', 'warn', message)
   }
 }

@@ -1,11 +1,11 @@
-import { Suspense, lazy, useState } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import './App.css'
 import {
   buildAttackFromPrompt,
   buildCharacterFromPrompt,
 } from './lib/dreamApi'
 import { CharacterBuildArt } from './components/BuildArt'
-import type { AttackBuild, CharacterBuild } from './types'
+import type { AttackBuild, CharacterBuild, GameLogEntry } from './types'
 
 const SandboxCanvas = lazy(async () => {
   const module = await import('./components/SandboxCanvas')
@@ -15,6 +15,7 @@ const SandboxCanvas = lazy(async () => {
 const DEFAULT_CHARACTER_PROMPT =
   'Kurbaga temali, biraz tankimsi ama komik duran bir arena savascisi'
 const DEFAULT_ATTACK_PROMPT = 'Alev sacan zincirli bir kara delik tufegi'
+const MAX_LOG_ENTRIES = 40
 
 function App() {
   const [characterPrompt, setCharacterPrompt] = useState(DEFAULT_CHARACTER_PROMPT)
@@ -26,10 +27,67 @@ function App() {
   const [paused, setPaused] = useState(false)
   const [restartTick, setRestartTick] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const [logs, setLogs] = useState<GameLogEntry[]>([])
+
+  function addLog(entry: Omit<GameLogEntry, 'id' | 'timestamp'>) {
+    setLogs((current) => {
+      const nextEntry: GameLogEntry = {
+        ...entry,
+        id: crypto.randomUUID(),
+        timestamp: new Date().toLocaleTimeString(),
+      }
+
+      return [nextEntry, ...current].slice(0, MAX_LOG_ENTRIES)
+    })
+  }
+
+  useEffect(() => {
+    addLog({
+      scope: 'app',
+      level: 'info',
+      message: 'DreamFighter session ready.',
+    })
+
+    const handleError = (event: ErrorEvent) => {
+      addLog({
+        scope: 'system',
+        level: 'error',
+        message: event.message || 'Unexpected window error.',
+      })
+    }
+
+    const handleRejection = (event: PromiseRejectionEvent) => {
+      const reason =
+        event.reason instanceof Error
+          ? event.reason.message
+          : typeof event.reason === 'string'
+            ? event.reason
+            : 'Unhandled promise rejection.'
+
+      addLog({
+        scope: 'system',
+        level: 'error',
+        message: reason,
+      })
+    }
+
+    window.addEventListener('error', handleError)
+    window.addEventListener('unhandledrejection', handleRejection)
+
+    return () => {
+      window.removeEventListener('error', handleError)
+      window.removeEventListener('unhandledrejection', handleRejection)
+    }
+  }, [])
 
   async function generateCharacter() {
     setError(null)
     setIsCharacterLoading(true)
+    addLog({
+      scope: 'generation',
+      level: 'info',
+      message: 'Character generation started.',
+    })
 
     try {
       const result = await buildCharacterFromPrompt(characterPrompt)
@@ -37,12 +95,22 @@ function App() {
       setAttack(null)
       setPaused(false)
       setRestartTick((value) => value + 1)
+      addLog({
+        scope: 'generation',
+        level: 'info',
+        message: `Character ready: ${result.name}.`,
+      })
     } catch (generationError) {
       const message =
         generationError instanceof Error
           ? generationError.message
           : 'Character generation failed.'
       setError(message)
+      addLog({
+        scope: 'generation',
+        level: 'error',
+        message,
+      })
     } finally {
       setIsCharacterLoading(false)
     }
@@ -50,24 +118,45 @@ function App() {
 
   async function generateAttack() {
     if (!character) {
-      setError('Generate a character first.')
+      const message = 'Generate a character first.'
+      setError(message)
+      addLog({
+        scope: 'generation',
+        level: 'warn',
+        message: 'Attack generation blocked until a character exists.',
+      })
       return
     }
 
     setError(null)
     setIsAttackLoading(true)
+    addLog({
+      scope: 'generation',
+      level: 'info',
+      message: 'Attack generation started.',
+    })
 
     try {
       const result = await buildAttackFromPrompt(attackPrompt, character)
       setAttack(result)
       setPaused(false)
       setRestartTick((value) => value + 1)
+      addLog({
+        scope: 'generation',
+        level: 'info',
+        message: `Attack ready: ${result.name}.`,
+      })
     } catch (generationError) {
       const message =
         generationError instanceof Error
           ? generationError.message
           : 'Attack generation failed.'
       setError(message)
+      addLog({
+        scope: 'generation',
+        level: 'error',
+        message,
+      })
     } finally {
       setIsAttackLoading(false)
     }
@@ -82,7 +171,7 @@ function App() {
           <h1>Fighter'ini kur. Ana atagini sec. Dummy'yi parcala.</h1>
           <p className="hero-body">
             Karakter fantazini yaz, ana atagini kilitle ve saniyeler icinde
-            arena'ya in. Hareket et, zıpla, aim al, dummy'yi baskila; loadout
+            arena'ya in. Hareket et, zipla, aim al, dummy'yi baskila; loadout
             istedigin gibi hissettirmiyorsa aninda reroll atip tekrar dene.
           </p>
         </div>
@@ -303,14 +392,31 @@ function App() {
             <button
               className="ghost-button"
               disabled={!sandboxReady}
-              onClick={() => setPaused((value) => !value)}
+              onClick={() =>
+                setPaused((value) => {
+                  const next = !value
+                  addLog({
+                    scope: 'sandbox',
+                    level: 'info',
+                    message: next ? 'Sandbox paused.' : 'Sandbox resumed.',
+                  })
+                  return next
+                })
+              }
             >
               {paused ? 'Resume' : 'Pause'}
             </button>
             <button
               className="ghost-button"
               disabled={!sandboxReady}
-              onClick={() => setRestartTick((value) => value + 1)}
+              onClick={() => {
+                addLog({
+                  scope: 'sandbox',
+                  level: 'warn',
+                  message: 'Sandbox restart requested.',
+                })
+                setRestartTick((value) => value + 1)
+              }}
             >
               Restart
             </button>
@@ -330,6 +436,7 @@ function App() {
           <SandboxCanvas
             attack={attack}
             character={character}
+            onLog={addLog}
             paused={paused}
             restartTick={restartTick}
           />
@@ -352,6 +459,41 @@ function App() {
             <span>Fire</span>
             <strong>Left click</strong>
           </div>
+        </div>
+      </section>
+
+      <section className="panel log-panel">
+        <div className="panel-header compact">
+          <div>
+            <p className="panel-kicker">Live Log</p>
+            <h2>Runtime Feed</h2>
+          </div>
+          <button
+            className="ghost-button"
+            disabled={!logs.length}
+            onClick={() => setLogs([])}
+          >
+            Clear
+          </button>
+        </div>
+
+        <div className="log-list" role="log" aria-live="polite">
+          {logs.length ? (
+            logs.map((entry) => (
+              <article className={`log-entry log-${entry.level}`} key={entry.id}>
+                <div className="log-meta">
+                  <span>{entry.timestamp}</span>
+                  <strong>{entry.scope}</strong>
+                </div>
+                <p>{entry.message}</p>
+              </article>
+            ))
+          ) : (
+            <p className="empty-copy">
+              Runtime logs burada akacak. Generate, restart, combat ve browser
+              error olaylarini bu panelden izleyebilirsin.
+            </p>
+          )}
         </div>
       </section>
     </main>

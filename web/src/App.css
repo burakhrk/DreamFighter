@@ -362,6 +362,57 @@
   min-width: 9rem;
 }
 
+.log-panel {
+  padding: 1.25rem;
+}
+
+.log-list {
+  display: grid;
+  gap: 0.75rem;
+  max-height: 22rem;
+  overflow: auto;
+  margin-top: 0.75rem;
+  padding-right: 0.25rem;
+}
+
+.log-entry {
+  padding: 0.9rem 1rem;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(16, 79, 83, 0.08);
+}
+
+.log-entry p {
+  margin: 0.35rem 0 0;
+}
+
+.log-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+.log-meta strong {
+  color: var(--text);
+  font-size: 0.76rem;
+}
+
+.log-info {
+  border-left: 4px solid rgba(20, 95, 99, 0.55);
+}
+
+.log-warn {
+  border-left: 4px solid rgba(241, 117, 52, 0.7);
+}
+
+.log-error {
+  border-left: 4px solid rgba(143, 43, 29, 0.8);
+}
+
 @media (max-width: 1080px) {
   .hero-panel,
   .studio-grid,

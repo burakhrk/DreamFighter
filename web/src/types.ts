@@ -17,6 +17,16 @@ export type ElementType =
 
 export type StatusEffect = 'burn' | 'poison' | 'slow' | null
 
+export type LogLevel = 'info' | 'warn' | 'error'
+
+export interface GameLogEntry {
+  id: string
+  level: LogLevel
+  scope: 'app' | 'generation' | 'sandbox' | 'combat' | 'system'
+  message: string
+  timestamp: string
+}
+
 export interface CharacterBuild {
   prompt: string
   name: string
